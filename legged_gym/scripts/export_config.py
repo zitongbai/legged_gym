@@ -62,6 +62,13 @@ with open(yaml_file_path, 'w') as f:
             'num_observations': env_cfg.env.num_observations,
             'gym_joint_names': env.dof_names,
         },
+        'commands' : {
+            'ranges':{
+                'lin_vel_x': env_cfg.commands.ranges.lin_vel_x,
+                'lin_vel_y': env_cfg.commands.ranges.lin_vel_y,
+                'ang_vel_yaw': env_cfg.commands.ranges.ang_vel_yaw,
+            }
+        },
         'init_state': {
             'default_joint_angles': env_cfg.init_state.default_joint_angles,
         },

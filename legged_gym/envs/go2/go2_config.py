@@ -31,8 +31,8 @@ class Go2Cfg( LeggedRobotCfg ):
     class control( LeggedRobotCfg.control ):
         # PD Drive parameters:
         control_type = 'P'
-        stiffness = {'joint': 20.}  # [N*m/rad]
-        damping = {'joint': 0.5}     # [N*m*s/rad]
+        stiffness = {'joint': 40.}  # [N*m/rad]
+        damping = {'joint': 1.0}     # [N*m*s/rad]
         # action scale: target angle = actionScale * action + defaultAngle
         action_scale = 0.25
         # decimation: Number of control action updates @ sim DT per policy DT
@@ -47,7 +47,7 @@ class Go2Cfg( LeggedRobotCfg ):
         self_collisions = 1 # 1 to disable, 0 to enable...bitwise filter
     
     class domain_rand(LeggedRobotCfg.domain_rand):
-        friction_range = [0., 1.5] # on ground planes the friction combination mode is averaging, i.e total friction = (foot_friction + 1.)/2.
+        friction_range = [0.2, 1.25] # on ground planes the friction combination mode is averaging, i.e total friction = (foot_friction + 1.)/2.
         randomize_base_mass = True
     
     # class rewards( LeggedRobotCfg.rewards ):
@@ -68,24 +68,26 @@ class Go2Cfg( LeggedRobotCfg ):
             tracking_ang_vel = 0.5
             lin_vel_z = -2.0
             ang_vel_xy = -0.05
-            orientation = -0.1
-            torques = -0.00001
+            orientation = -0.2
+            torques = -0.0002
             dof_vel = -0.
             dof_acc = -2.5e-7
-            base_height = -0.01
+            base_height = -1.0
             feet_air_time =  1.0
-            collision = -0.8
+            collision = -0.0
             feet_stumble = -0.0 
             action_rate = -0.01
-            stand_still = -0.01
+            stand_still = -0.
+            foot_clearance = -0.5
 
         only_positive_rewards = True # if true negative total rewards are clipped at zero (avoids early termination problems)
         tracking_sigma = 0.25 # tracking reward = exp(-error^2/sigma)
         soft_dof_pos_limit = 0.9 # percentage of urdf limits, values above this limit are penalized
         soft_dof_vel_limit = 1.
         soft_torque_limit = 1.
-        base_height_target = 0.3
+        base_height_target = 0.33
         max_contact_force = 100. # forces above this value are penalized
+        clearance_height_target = -0.20
 
 class Go2CfgPPO( LeggedRobotCfgPPO ):
     class policy(LeggedRobotCfgPPO.policy):
@@ -97,6 +99,6 @@ class Go2CfgPPO( LeggedRobotCfgPPO ):
     class runner( LeggedRobotCfgPPO.runner ):
         run_name = ''
         experiment_name = 'go2'
-        max_iterations = 300 # number of policy updates
+        max_iterations = 500 # number of policy updates
 
   
