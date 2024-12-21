@@ -68,16 +68,16 @@ class Go2Cfg( LeggedRobotCfg ):
             tracking_ang_vel = 0.5
             lin_vel_z = -2.0
             ang_vel_xy = -0.05
-            orientation = -0.2
-            torques = -0.0002
+            orientation = -1.0
+            torques = -0.000025
             dof_vel = -0.
             dof_acc = -2.5e-7
             base_height = -1.0
-            feet_air_time =  1.0
+            feet_air_time =  1.5
             collision = -0.0
             feet_stumble = -0.0 
             action_rate = -0.01
-            stand_still = -0.
+            stand_still = -0.001
             foot_clearance = -0.5
 
         only_positive_rewards = True # if true negative total rewards are clipped at zero (avoids early termination problems)
@@ -87,7 +87,7 @@ class Go2Cfg( LeggedRobotCfg ):
         soft_torque_limit = 1.
         base_height_target = 0.33
         max_contact_force = 100. # forces above this value are penalized
-        clearance_height_target = -0.20
+        clearance_height_target = -0.50
 
 class Go2CfgPPO( LeggedRobotCfgPPO ):
     class policy(LeggedRobotCfgPPO.policy):

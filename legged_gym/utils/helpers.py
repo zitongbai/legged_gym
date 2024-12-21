@@ -35,6 +35,7 @@ import numpy as np
 import random
 from isaacgym import gymapi
 from isaacgym import gymutil
+import torch.nn.functional as F
 
 from legged_gym import LEGGED_GYM_ROOT_DIR, LEGGED_GYM_ENVS_DIR
 
@@ -130,6 +131,8 @@ def update_cfg_from_args(env_cfg, cfg_train, args):
         # num envs
         if args.num_envs is not None:
             env_cfg.env.num_envs = args.num_envs
+        if args.seed is not None:
+            env_cfg.seed = args.seed
     if cfg_train is not None:
         if args.seed is not None:
             cfg_train.seed = args.seed
@@ -182,6 +185,9 @@ def export_policy_as_jit(actor_critic, path):
         # assumes LSTM: TODO add GRU
         exporter = PolicyExporterLSTM(actor_critic)
         exporter.export(path)
+    elif hasattr(actor_critic, 'estimator'):
+        exporter = PolicyExporterHIM(actor_critic)
+        exporter.export(path)
     else: 
         os.makedirs(path, exist_ok=True)
         path = os.path.join(path, 'policy_1.pt')
@@ -218,4 +224,22 @@ class PolicyExporterLSTM(torch.nn.Module):
         traced_script_module = torch.jit.script(self)
         traced_script_module.save(path)
 
+class PolicyExporterHIM(torch.nn.Module):
+    def __init__(self, actor_critic):
+        super().__init__()
+        self.actor = copy.deepcopy(actor_critic.actor)
+        self.estimator = copy.deepcopy(actor_critic.estimator.encoder)
+
+    def forward(self, obs_history):
+        parts = self.estimator(obs_history)[:, 0:19]
+        vel, z = parts[..., :3], parts[..., 3:]
+        z = F.normalize(z, dim=-1, p=2.0)
+        return self.actor(torch.cat((obs_history[:, 0:45], vel, z), dim=1))
+
+    def export(self, path):
+        os.makedirs(path, exist_ok=True)
+        path = os.path.join(path, 'policy.pt')
+        self.to('cpu')
+        traced_script_module = torch.jit.script(self)
+        traced_script_module.save(path)
     
