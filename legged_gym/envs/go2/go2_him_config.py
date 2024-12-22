@@ -81,7 +81,7 @@ class Go2HimRoughCfg( LeggedRobotCfg ):
         terminate_after_contacts_on = ["base"]
         privileged_contacts_on = ["base", "thigh", "calf"]
         self_collisions = 1 # 1 to disable, 0 to enable...bitwise filter
-        flip_visual_attachments = False # Some .obj meshes must be flipped from y-up to z-up
+        flip_visual_attachments = True # Some .obj meshes must be flipped from y-up to z-up
   
     class rewards( LeggedRobotCfg.rewards ):
         class scales:
