@@ -238,7 +238,7 @@ class PolicyExporterHIM(torch.nn.Module):
 
     def export(self, path):
         os.makedirs(path, exist_ok=True)
-        path = os.path.join(path, 'policy.pt')
+        path = os.path.join(path, 'policy_1.pt')
         self.to('cpu')
         traced_script_module = torch.jit.script(self)
         traced_script_module.save(path)
