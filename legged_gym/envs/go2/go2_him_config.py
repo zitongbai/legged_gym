@@ -60,7 +60,7 @@ class Go2HimRoughCfg( LeggedRobotCfg ):
         # decimation: Number of control action updates @ sim DT per policy DT
         decimation = 4
         hip_reduction = 1.0
-        use_actuator_network = True
+        use_actuator_network = False
         actuator_net_file = '{LEGGED_GYM_ROOT_DIR}/resources/actuator_nets/go2_actuator_net.pt'
 
     class commands( LeggedRobotCfg.commands ):
