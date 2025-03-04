@@ -42,6 +42,8 @@ from .go2.go2_config import Go2Cfg, Go2CfgPPO
 from .go2.go2 import Go2
 from .go2.go2_him_config import Go2HimRoughCfg, Go2HimRoughCfgPPO
 from .go2.go2_him import Go2HimRough
+from .g1.g1 import G1
+from .g1.g1_config import G1Config, G1RoughCfgPPO
 
 import os
 
@@ -54,3 +56,4 @@ task_registry.register( "a1", LeggedRobot, A1RoughCfg(), A1RoughCfgPPO() )
 task_registry.register( "cassie", Cassie, CassieRoughCfg(), CassieRoughCfgPPO() )
 task_registry.register( "go2", Go2, Go2Cfg(), Go2CfgPPO())
 task_registry.register( "go2_him", Go2HimRough, Go2HimRoughCfg(), Go2HimRoughCfgPPO() ) # note that 'him' must be included in the name of the task
+task_registry.register( "g1", G1, G1Config(), G1RoughCfgPPO() )
