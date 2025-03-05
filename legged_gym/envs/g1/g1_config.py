@@ -98,6 +98,7 @@ class G1Config(LeggedRobotCfg):
         base_height_target = 0.78
         clearance_height_target = 0.09
         feet_swing_height = 0.08
+        only_positive_rewards = False
 
         class scales( LeggedRobotCfg.rewards.scales ):
             tracking_lin_vel = 1.0
@@ -117,7 +118,7 @@ class G1Config(LeggedRobotCfg):
             contact_no_vel = -0.2
             feet_swing_height = -20.0
             contact = 0.18
-            upper_dof = -0.5
+            upper_dof = -0.0005
         
     class domain_rand(LeggedRobotCfg.domain_rand):
         randomize_friction = True
@@ -144,6 +145,7 @@ class G1RoughCfgPPO( LeggedRobotCfgPPO ):
         entropy_coef = 0.01
     class runner( LeggedRobotCfgPPO.runner ):
         policy_class_name = "ActorCriticRecurrent"
+        num_steps_per_env = 32 # per iteration
         max_iterations = 2000
         run_name = ''
         experiment_name = 'g1'
