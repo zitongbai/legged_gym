@@ -29,7 +29,7 @@ def get_euler_xyz(q):
 
     return torch.stack((roll, pitch, yaw), dim=-1)
 
-class G1(LeggedRobot):
+class G1Dof12(LeggedRobot):
     def __init__(self, cfg, sim_params, physics_engine, sim_device, headless):
         super().__init__(cfg, sim_params, physics_engine, sim_device, headless)
         
@@ -58,10 +58,6 @@ class G1(LeggedRobot):
     def compute_observations(self):
         sin_phase = torch.sin(2*np.pi*self.phase).unsqueeze(1)
         cos_phase = torch.cos(2*np.pi*self.phase).unsqueeze(1)
-        
-        # upper_coeff = torch.ones(self.num_dof, dtype=torch.float, device=self.device, requires_grad=False)
-        # upper_coeff[self.upper_dof_indices] = 0.25
-        
         self.obs_buf = torch.cat((  self.base_ang_vel  * self.obs_scales.ang_vel,
                                     self.projected_gravity,
                                     self.commands[:, :3] * self.commands_scale,
@@ -138,13 +134,6 @@ class G1(LeggedRobot):
     def _create_envs(self):
         super()._create_envs()
         
-        # find all upper dofs, obeying order in self.dof_names
-        self.upper_dof_indices = []
-        for i in range(len(self.dof_names)):
-            if any([s in self.dof_names[i] for s in self.cfg.asset.upper_dof_name]):
-                self.upper_dof_indices.append(i)
-        self.upper_dof_indices = torch.tensor(self.upper_dof_indices, dtype=torch.long, device=self.device, requires_grad=False)
-        
         # find all hip dofs, obeying order in self.dof_names
         self.hip_dof_indices = []
         for i in range(len(self.dof_names)):
@@ -181,10 +170,6 @@ class G1(LeggedRobot):
     
     def _reward_hip_pos(self):
         return torch.sum(torch.square(self.dof_pos[:, self.hip_dof_indices]), dim=1)
-    
-    def _reward_upper_dof(self):
-        # penalize upper dof
-        return torch.sum(torch.abs(self.dof_pos[:, self.upper_dof_indices] - self.default_dof_pos[:, self.upper_dof_indices]), dim=1)
     
     def _reward_foot_clearance(self):
         cur_footpos_translated = self.feet_pos - self.root_states[:, 0:3].unsqueeze(1)

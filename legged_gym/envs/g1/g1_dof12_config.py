@@ -1,14 +1,11 @@
 from legged_gym.envs.base.legged_robot_config import LeggedRobotCfg, LeggedRobotCfgPPO
 
-class G1Cfg(LeggedRobotCfg):
+class G1Dof12Cfg(LeggedRobotCfg):
     class env(LeggedRobotCfg.env):
         num_envs = 4096
-        num_observations = 92  # TODO
-        num_privileged_obs = 95
-        num_actions = 27 # TODO
-        # num_observations = 47
-        # num_privileged_obs = 50
-        # num_actions = 12
+        num_observations = 47
+        num_privileged_obs = 50
+        num_actions = 12
         
     class terrain(LeggedRobotCfg.terrain):
         mesh_type = 'plane'
@@ -29,21 +26,6 @@ class G1Cfg(LeggedRobotCfg):
             'right_knee_joint': 0.3,
             'right_ankle_pitch_joint': -0.2,
             'right_ankle_roll_joint': 0.0,
-            'waist_yaw_joint': 0.0,
-            'left_shoulder_pitch_joint': 0.3,
-            'left_shoulder_roll_joint': 0.3,
-            'left_shoulder_yaw_joint': 0.0,
-            'left_elbow_joint': 0.9,
-            'left_wrist_roll_joint': 0.0,
-            'left_wrist_pitch_joint': 0.0,
-            'left_wrist_yaw_joint': 0.0,
-            'right_shoulder_pitch_joint': 0.3,
-            'right_shoulder_roll_joint': -0.3,
-            'right_shoulder_yaw_joint': 0.0,
-            'right_elbow_joint': 0.9,
-            'right_wrist_roll_joint': 0.0,
-            'right_wrist_pitch_joint': 0.0,
-            'right_wrist_yaw_joint': 0.0,
         }
         
     class control( LeggedRobotCfg.control ):
@@ -56,14 +38,6 @@ class G1Cfg(LeggedRobotCfg):
                         'hip_pitch': 100,
                         'knee': 150,
                         'ankle': 40,
-                        'waist_yaw_joint': 100,
-                        'shoulder_pitch': 150,
-                        'shoulder_roll': 150,
-                        'shoulder_yaw': 100,
-                        'elbow': 100,
-                        'wrist_roll': 40,
-                        'wrist_pitch': 40,
-                        'wrist_yaw': 40,
                      }  # [N*m/rad]
         damping = {  
                         'hip_yaw': 2,
@@ -71,14 +45,6 @@ class G1Cfg(LeggedRobotCfg):
                         'hip_pitch': 2,
                         'knee': 4,
                         'ankle': 2,
-                        'waist_yaw_joint': 2,
-                        'shoulder_pitch': 4,
-                        'shoulder_roll': 4,
-                        'shoulder_yaw': 2,
-                        'elbow': 2,
-                        'wrist_roll': 2,
-                        'wrist_pitch': 2,
-                        'wrist_yaw': 2,
                      }  # [N*m/rad]  # [N*m*s/rad]
         # action scale: target angle = actionScale * action + defaultAngle
         action_scale = 0.25
@@ -86,15 +52,13 @@ class G1Cfg(LeggedRobotCfg):
         decimation = 4
 
     class asset( LeggedRobotCfg.asset ):
-        file = '{LEGGED_GYM_ROOT_DIR}/resources/robots/g1/g1_29dof_lock_waist_rev_1_0.urdf'
-        # file = '{LEGGED_GYM_ROOT_DIR}/resources/robots/g1/g1_12dof.urdf'
+        file = '{LEGGED_GYM_ROOT_DIR}/resources/robots/g1/g1_12dof.urdf'
         name = "g1"
         foot_name = "ankle_roll"
         penalize_contacts_on = ["hip", "knee"]
         terminate_after_contacts_on = ["pelvis", "torso_link"]
         self_collisions = 0 # 1 to disable, 0 to enable...bitwise filter
         flip_visual_attachments = False # Some .obj meshes must be flipped from y-up to z-up
-        upper_dof_name = ["shoulder", "elbow", "wrist", "waist"]
         hip_dof_name = ["hip_roll", "hip_yaw"]
     
     class rewards( LeggedRobotCfg.rewards ):
@@ -106,14 +70,14 @@ class G1Cfg(LeggedRobotCfg):
 
         class scales( LeggedRobotCfg.rewards.scales ):
             tracking_lin_vel = 1.0
-            tracking_ang_vel = 1.5
+            tracking_ang_vel = 0.5
             lin_vel_z = -2.0
             ang_vel_xy = -0.05
             orientation = -1.0
             base_height = -10.0
             dof_acc = -2.5e-7
             dof_vel = -1e-3
-            feet_air_time = 2.0
+            feet_air_time = 0.0
             collision = 0.0
             action_rate = -0.01
             dof_pos_limits = -5.0
@@ -122,11 +86,6 @@ class G1Cfg(LeggedRobotCfg):
             contact_no_vel = -0.2
             feet_swing_height = -20.0
             contact = 0.18
-            upper_dof = -0.3
-            
-            # termination = -10.0
-            # stand_still = -0.4
-            # torques = -1e-7
         
     class domain_rand(LeggedRobotCfg.domain_rand):
         randomize_friction = True
@@ -138,7 +97,7 @@ class G1Cfg(LeggedRobotCfg):
         max_push_vel_xy = 1.5
         
 
-class G1CfgPPO( LeggedRobotCfgPPO ):
+class G1Dof12CfgPPO( LeggedRobotCfgPPO ):
     class policy:
         init_noise_std = 0.8
         actor_hidden_dims = [32]
@@ -156,6 +115,6 @@ class G1CfgPPO( LeggedRobotCfgPPO ):
         num_steps_per_env = 24 # per iteration
         max_iterations = 2000
         run_name = ''
-        experiment_name = 'g1'
+        experiment_name = 'g1_dof12'
         save_interval = 100 # check for potential saves every this many iterations
   
