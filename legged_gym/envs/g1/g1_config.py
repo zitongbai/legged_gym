@@ -57,13 +57,13 @@ class G1Cfg(LeggedRobotCfg):
                         'knee': 150,
                         'ankle': 40,
                         'waist_yaw_joint': 100,
-                        'shoulder_pitch': 150,
-                        'shoulder_roll': 150,
-                        'shoulder_yaw': 100,
-                        'elbow': 100,
-                        'wrist_roll': 40,
-                        'wrist_pitch': 40,
-                        'wrist_yaw': 40,
+                        'shoulder_pitch': 50,
+                        'shoulder_roll': 50,
+                        'shoulder_yaw': 50,
+                        'elbow': 50,
+                        'wrist_roll': 20,
+                        'wrist_pitch': 20,
+                        'wrist_yaw': 20,
                      }  # [N*m/rad]
         damping = {  
                         'hip_yaw': 2,
@@ -72,8 +72,8 @@ class G1Cfg(LeggedRobotCfg):
                         'knee': 4,
                         'ankle': 2,
                         'waist_yaw_joint': 2,
-                        'shoulder_pitch': 4,
-                        'shoulder_roll': 4,
+                        'shoulder_pitch': 2,
+                        'shoulder_roll': 2,
                         'shoulder_yaw': 2,
                         'elbow': 2,
                         'wrist_roll': 2,
@@ -96,6 +96,7 @@ class G1Cfg(LeggedRobotCfg):
         flip_visual_attachments = False # Some .obj meshes must be flipped from y-up to z-up
         upper_dof_name = ["shoulder", "elbow", "wrist", "waist"]
         hip_dof_name = ["hip_roll", "hip_yaw"]
+        leg_dof_name = ["hip", "knee", "ankle"]
     
     class rewards( LeggedRobotCfg.rewards ):
         soft_dof_pos_limit = 0.9
@@ -122,7 +123,7 @@ class G1Cfg(LeggedRobotCfg):
             contact_no_vel = -0.2
             feet_swing_height = -20.0
             contact = 0.18
-            upper_dof = -0.3
+            upper_dof = -0.1
             
             # termination = -10.0
             # stand_still = -0.4

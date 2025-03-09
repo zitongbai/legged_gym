@@ -152,7 +152,29 @@ class G1(LeggedRobot):
                 self.hip_dof_indices.append(i)
         self.hip_dof_indices = torch.tensor(self.hip_dof_indices, dtype=torch.long, device=self.device, requires_grad=False)
         
+        self.leg_dof_indices = []
+        for i in range(len(self.dof_names)):
+            if any([s in self.dof_names[i] for s in self.cfg.asset.leg_dof_name]):
+                self.leg_dof_indices.append(i)
+        self.leg_dof_indices = torch.tensor(self.leg_dof_indices, dtype=torch.long, device=self.device, requires_grad=False)
+        
     # ------------ reward functions----------------
+    def _reward_torques(self):
+        # Penalize torques
+        return torch.sum(torch.square(self.torques[:, self.leg_dof_indices]), dim=1)
+    
+    def _reward_dof_vel(self):
+        # Penalize dof velocities
+        return torch.sum(torch.square(self.dof_vel[:, self.leg_dof_indices]), dim=1)
+    
+    def _reward_dof_acc(self):
+        # Penalize dof accelerations
+        return torch.sum(torch.square((self.last_dof_vel[:, self.leg_dof_indices] - self.dof_vel[:, self.leg_dof_indices]) / self.dt), dim=1)
+    
+    def _reward_action_rate(self):
+        # Penalize changes in actions
+        return torch.sum(torch.square(self.last_actions[:, self.leg_dof_indices] - self.actions[:, self.leg_dof_indices]), dim=1)
+    
     def _reward_contact(self):
         """ Reward for contact when in stance phase
         """
