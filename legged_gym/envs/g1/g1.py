@@ -3,6 +3,8 @@ from isaacgym.torch_utils import *
 from isaacgym import gymtorch, gymapi, gymutil
 import numpy as np
 import torch
+import os
+from legged_gym import LEGGED_GYM_ROOT_DIR
 
 @torch.jit.script
 def copysign(a:float, b:torch.Tensor):
@@ -37,6 +39,10 @@ class G1(LeggedRobot):
     def check_termination(self):
         super().check_termination()
         self.reset_buf |= torch.logical_or(torch.abs(self.rpy[:,1])>1.0, torch.abs(self.rpy[:,0])>0.8)
+        
+    def reset_idx(self, env_ids):
+        super().reset_idx(env_ids)
+        self.update_upper_dof_pos_limit_curriculum(env_ids)
 
     def _post_physics_step_callback(self):
         self.gym.refresh_rigid_body_state_tensor(self.sim)
@@ -152,28 +158,85 @@ class G1(LeggedRobot):
                 self.hip_dof_indices.append(i)
         self.hip_dof_indices = torch.tensor(self.hip_dof_indices, dtype=torch.long, device=self.device, requires_grad=False)
         
-        self.leg_dof_indices = []
-        for i in range(len(self.dof_names)):
-            if any([s in self.dof_names[i] for s in self.cfg.asset.leg_dof_name]):
-                self.leg_dof_indices.append(i)
-        self.leg_dof_indices = torch.tensor(self.leg_dof_indices, dtype=torch.long, device=self.device, requires_grad=False)
+        # self.leg_dof_indices = []
+        # for i in range(len(self.dof_names)):
+        #     if any([s in self.dof_names[i] for s in self.cfg.asset.leg_dof_name]):
+        #         self.leg_dof_indices.append(i)
+        # self.leg_dof_indices = torch.tensor(self.leg_dof_indices, dtype=torch.long, device=self.device, requires_grad=False)
         
+        # dof pos limits of upper dof is 0 at beginning.
+        
+        asset_path = self.cfg.asset.file.format(LEGGED_GYM_ROOT_DIR=LEGGED_GYM_ROOT_DIR)
+        asset_root = os.path.dirname(asset_path)
+        asset_file = os.path.basename(asset_path)
+
+        asset_options = gymapi.AssetOptions()
+        asset_options.default_dof_drive_mode = self.cfg.asset.default_dof_drive_mode
+        asset_options.collapse_fixed_joints = self.cfg.asset.collapse_fixed_joints
+        asset_options.replace_cylinder_with_capsule = self.cfg.asset.replace_cylinder_with_capsule
+        asset_options.flip_visual_attachments = self.cfg.asset.flip_visual_attachments
+        asset_options.fix_base_link = self.cfg.asset.fix_base_link
+        asset_options.density = self.cfg.asset.density
+        asset_options.angular_damping = self.cfg.asset.angular_damping
+        asset_options.linear_damping = self.cfg.asset.linear_damping
+        asset_options.max_angular_velocity = self.cfg.asset.max_angular_velocity
+        asset_options.max_linear_velocity = self.cfg.asset.max_linear_velocity
+        asset_options.armature = self.cfg.asset.armature
+        asset_options.thickness = self.cfg.asset.thickness
+        asset_options.disable_gravity = self.cfg.asset.disable_gravity
+        
+        robot_asset = self.gym.load_asset(self.sim, asset_root, asset_file, asset_options)
+        self.dof_props_asset = self.gym.get_asset_dof_properties(robot_asset)
+        self.dof_limits_upper = self.dof_props_asset["upper"][:]
+        self.dof_limits_lower = self.dof_props_asset["lower"][:]
+        
+        self._change_upper_dof_pos_limits(0.0)
+        self.cfg.rewards.scales.upper_dof = 0.1
+        
+
+    def update_upper_dof_pos_limit_curriculum(self, env_ids):
+        
+        track_rew_percent =  torch.mean(self.episode_sums["tracking_lin_vel"][env_ids]) / self.max_episode_length > 0.5 * self.reward_scales["tracking_lin_vel"]
+        
+        if track_rew_percent > 0.5:
+            self._change_upper_dof_pos_limits(0.1)
+            self.cfg.rewards.scales.upper_dof = 0.5
+        elif track_rew_percent > 0.8:
+            self._change_upper_dof_pos_limits(0.5)
+            self.cfg.rewards.scales.upper_dof = 1.0
+        elif track_rew_percent > 0.9:
+            self._change_upper_dof_pos_limits(1.0)
+            self.cfg.rewards.scales.upper_dof = 2.0
+        
+
+    def _change_upper_dof_pos_limits(self, scale):
+        for i, env_handle in enumerate(self.envs):
+            actor_handle = self.actor_handles[i]
+            for idx in self.upper_dof_indices:
+                self.dof_props_asset["lower"][idx] = self.dof_limits_lower[idx] * scale
+                self.dof_props_asset["upper"][idx] = self.dof_limits_upper[idx] * scale
+            self.gym.set_actor_dof_properties(env_handle, actor_handle, self.dof_props_asset)
+
+        for idx in self.upper_dof_indices:
+            self.dof_pos_limits[idx, 0] = self.dof_limits_lower[idx] * scale
+            self.dof_pos_limits[idx, 1] = self.dof_limits_upper[idx] * scale
+
     # ------------ reward functions----------------
-    def _reward_torques(self):
-        # Penalize torques
-        return torch.sum(torch.square(self.torques[:, self.leg_dof_indices]), dim=1)
+    # def _reward_torques(self):
+    #     # Penalize torques
+    #     return torch.sum(torch.square(self.torques[:, self.leg_dof_indices]), dim=1)
     
-    def _reward_dof_vel(self):
-        # Penalize dof velocities
-        return torch.sum(torch.square(self.dof_vel[:, self.leg_dof_indices]), dim=1)
+    # def _reward_dof_vel(self):
+    #     # Penalize dof velocities
+    #     return torch.sum(torch.square(self.dof_vel[:, self.leg_dof_indices]), dim=1)
     
-    def _reward_dof_acc(self):
-        # Penalize dof accelerations
-        return torch.sum(torch.square((self.last_dof_vel[:, self.leg_dof_indices] - self.dof_vel[:, self.leg_dof_indices]) / self.dt), dim=1)
+    # def _reward_dof_acc(self):
+    #     # Penalize dof accelerations
+    #     return torch.sum(torch.square((self.last_dof_vel[:, self.leg_dof_indices] - self.dof_vel[:, self.leg_dof_indices]) / self.dt), dim=1)
     
-    def _reward_action_rate(self):
-        # Penalize changes in actions
-        return torch.sum(torch.square(self.last_actions[:, self.leg_dof_indices] - self.actions[:, self.leg_dof_indices]), dim=1)
+    # def _reward_action_rate(self):
+    #     # Penalize changes in actions
+    #     return torch.sum(torch.square(self.last_actions[:, self.leg_dof_indices] - self.actions[:, self.leg_dof_indices]), dim=1)
     
     def _reward_contact(self):
         """ Reward for contact when in stance phase
@@ -205,8 +268,9 @@ class G1(LeggedRobot):
         return torch.sum(torch.square(self.dof_pos[:, self.hip_dof_indices]), dim=1)
     
     def _reward_upper_dof(self):
-        # penalize upper dof
-        return torch.sum(torch.abs(self.dof_pos[:, self.upper_dof_indices] - self.default_dof_pos[:, self.upper_dof_indices]), dim=1)
+        # upper dof
+        upper_dof_err = torch.sum(torch.abs(self.dof_pos[:, self.upper_dof_indices] - self.default_dof_pos[:, self.upper_dof_indices]), dim=1)
+        return torch.exp(-upper_dof_err/self.cfg.rewards.tracking_sigma)
     
     def _reward_foot_clearance(self):
         cur_footpos_translated = self.feet_pos - self.root_states[:, 0:3].unsqueeze(1)

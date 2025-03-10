@@ -30,17 +30,17 @@ class G1Cfg(LeggedRobotCfg):
             'right_ankle_pitch_joint': -0.2,
             'right_ankle_roll_joint': 0.0,
             'waist_yaw_joint': 0.0,
-            'left_shoulder_pitch_joint': 0.3,
-            'left_shoulder_roll_joint': 0.3,
+            'left_shoulder_pitch_joint': 0.0, # 0.3,
+            'left_shoulder_roll_joint': 0.0, # 0.3,
             'left_shoulder_yaw_joint': 0.0,
-            'left_elbow_joint': 0.9,
+            'left_elbow_joint': 0.0, # 0.9,
             'left_wrist_roll_joint': 0.0,
             'left_wrist_pitch_joint': 0.0,
             'left_wrist_yaw_joint': 0.0,
-            'right_shoulder_pitch_joint': 0.3,
-            'right_shoulder_roll_joint': -0.3,
+            'right_shoulder_pitch_joint': 0.0, # 0.3,
+            'right_shoulder_roll_joint': 0.0, # -0.3,
             'right_shoulder_yaw_joint': 0.0,
-            'right_elbow_joint': 0.9,
+            'right_elbow_joint': 0.0, # 0.9,
             'right_wrist_roll_joint': 0.0,
             'right_wrist_pitch_joint': 0.0,
             'right_wrist_yaw_joint': 0.0,
@@ -84,6 +84,7 @@ class G1Cfg(LeggedRobotCfg):
         action_scale = 0.25
         # decimation: Number of control action updates @ sim DT per policy DT
         decimation = 4
+        
 
     class asset( LeggedRobotCfg.asset ):
         file = '{LEGGED_GYM_ROOT_DIR}/resources/robots/g1/g1_29dof_lock_waist_rev_1_0.urdf'
@@ -107,7 +108,7 @@ class G1Cfg(LeggedRobotCfg):
 
         class scales( LeggedRobotCfg.rewards.scales ):
             tracking_lin_vel = 1.0
-            tracking_ang_vel = 1.5
+            tracking_ang_vel = 0.5
             lin_vel_z = -2.0
             ang_vel_xy = -0.05
             orientation = -1.0
@@ -122,8 +123,8 @@ class G1Cfg(LeggedRobotCfg):
             hip_pos = -1.0
             contact_no_vel = -0.2
             feet_swing_height = -20.0
-            contact = 0.18
-            upper_dof = -0.1
+            contact = 0.5
+            upper_dof = 0.5
             
             # termination = -10.0
             # stand_still = -0.4
