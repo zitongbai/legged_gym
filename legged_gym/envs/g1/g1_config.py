@@ -30,17 +30,17 @@ class G1Cfg(LeggedRobotCfg):
             'right_ankle_pitch_joint': -0.2,
             'right_ankle_roll_joint': 0.0,
             'waist_yaw_joint': 0.0,
-            'left_shoulder_pitch_joint': 0.0, # 0.3,
-            'left_shoulder_roll_joint': 0.0, # 0.3,
+            'left_shoulder_pitch_joint': 0.3,
+            'left_shoulder_roll_joint': 0.3,
             'left_shoulder_yaw_joint': 0.0,
-            'left_elbow_joint': 0.0, # 0.9,
+            'left_elbow_joint': 0.9,
             'left_wrist_roll_joint': 0.0,
             'left_wrist_pitch_joint': 0.0,
             'left_wrist_yaw_joint': 0.0,
-            'right_shoulder_pitch_joint': 0.0, # 0.3,
-            'right_shoulder_roll_joint': 0.0, # -0.3,
+            'right_shoulder_pitch_joint': 0.3,
+            'right_shoulder_roll_joint': -0.3,
             'right_shoulder_yaw_joint': 0.0,
-            'right_elbow_joint': 0.0, # 0.9,
+            'right_elbow_joint': 0.9,
             'right_wrist_roll_joint': 0.0,
             'right_wrist_pitch_joint': 0.0,
             'right_wrist_yaw_joint': 0.0,
@@ -98,6 +98,9 @@ class G1Cfg(LeggedRobotCfg):
         upper_dof_name = ["shoulder", "elbow", "wrist", "waist"]
         hip_dof_name = ["hip_roll", "hip_yaw"]
         leg_dof_name = ["hip", "knee", "ankle"]
+        
+        arm_dof_name = ["shoulder", "elbow", "wrist", ]
+        waist_dof_name = ["waist", ]
     
     class rewards( LeggedRobotCfg.rewards ):
         soft_dof_pos_limit = 0.9
@@ -115,7 +118,7 @@ class G1Cfg(LeggedRobotCfg):
             base_height = -10.0
             dof_acc = -2.5e-7
             dof_vel = -1e-3
-            feet_air_time = 2.0
+            feet_air_time = 1.0
             collision = 0.0
             action_rate = -0.01
             dof_pos_limits = -5.0
@@ -123,12 +126,12 @@ class G1Cfg(LeggedRobotCfg):
             hip_pos = -1.0
             contact_no_vel = -0.2
             feet_swing_height = -20.0
-            contact = 0.5
-            upper_dof = 0.5
+            contact = 0.18
             
-            # termination = -10.0
-            # stand_still = -0.4
-            # torques = -1e-7
+            arm_dof_deviation = -0.1
+            waist_dof_deviation = -0.25
+            hip_dof_deviation = -0.5
+            
         
     class domain_rand(LeggedRobotCfg.domain_rand):
         randomize_friction = True

@@ -191,35 +191,32 @@ class G1(LeggedRobot):
         self.dof_limits_lower = self.dof_props_asset["lower"][:]
         
         self._change_upper_dof_pos_limits(0.0)
-        self.cfg.rewards.scales.upper_dof = 0.1
         
 
     def update_upper_dof_pos_limit_curriculum(self, env_ids):
         
-        track_rew_percent =  torch.mean(self.episode_sums["tracking_lin_vel"][env_ids]) / self.max_episode_length > 0.5 * self.reward_scales["tracking_lin_vel"]
-        
-        if track_rew_percent > 0.5:
+        track_rew_percent =  torch.mean(self.episode_sums["tracking_lin_vel"][env_ids]) / self.max_episode_length 
+        # print(track_rew_percent)
+        if track_rew_percent > 0.5 * self.reward_scales["tracking_lin_vel"]:
             self._change_upper_dof_pos_limits(0.1)
-            self.cfg.rewards.scales.upper_dof = 0.5
-        elif track_rew_percent > 0.8:
+            # self.reward_scales["upper_dof"] = 0.1
+        elif track_rew_percent > 0.8 * self.reward_scales["tracking_lin_vel"]:
             self._change_upper_dof_pos_limits(0.5)
-            self.cfg.rewards.scales.upper_dof = 1.0
-        elif track_rew_percent > 0.9:
+        elif track_rew_percent > 0.9 * self.reward_scales["tracking_lin_vel"]:
             self._change_upper_dof_pos_limits(1.0)
-            self.cfg.rewards.scales.upper_dof = 2.0
         
 
     def _change_upper_dof_pos_limits(self, scale):
         for i, env_handle in enumerate(self.envs):
             actor_handle = self.actor_handles[i]
             for idx in self.upper_dof_indices:
-                self.dof_props_asset["lower"][idx] = self.dof_limits_lower[idx] * scale
-                self.dof_props_asset["upper"][idx] = self.dof_limits_upper[idx] * scale
+                self.dof_props_asset["lower"][idx] = (1-scale) * self.default_dof_pos[idx] + scale * self.dof_limits_lower[idx]
+                self.dof_props_asset["upper"][idx] = (1-scale) * self.default_dof_pos[idx] + scale * self.dof_limits_upper[idx]
             self.gym.set_actor_dof_properties(env_handle, actor_handle, self.dof_props_asset)
 
         for idx in self.upper_dof_indices:
-            self.dof_pos_limits[idx, 0] = self.dof_limits_lower[idx] * scale
-            self.dof_pos_limits[idx, 1] = self.dof_limits_upper[idx] * scale
+            self.dof_pos_limits[idx, 0] = (1-scale) * self.default_dof_pos[idx] + scale * self.dof_limits_lower[idx]
+            self.dof_pos_limits[idx, 1] = (1-scale) * self.default_dof_pos[idx] + scale * self.dof_limits_upper[idx]
 
     # ------------ reward functions----------------
     # def _reward_torques(self):
@@ -267,10 +264,10 @@ class G1(LeggedRobot):
     def _reward_hip_pos(self):
         return torch.sum(torch.square(self.dof_pos[:, self.hip_dof_indices]), dim=1)
     
-    def _reward_upper_dof(self):
-        # upper dof
-        upper_dof_err = torch.sum(torch.abs(self.dof_pos[:, self.upper_dof_indices] - self.default_dof_pos[:, self.upper_dof_indices]), dim=1)
-        return torch.exp(-upper_dof_err/self.cfg.rewards.tracking_sigma)
+    # def _reward_upper_dof(self):
+    #     # upper dof
+    #     upper_dof_err = torch.sum(torch.abs(self.dof_pos[:, self.upper_dof_indices] - self.default_dof_pos[:, self.upper_dof_indices]), dim=1)
+    #     return torch.exp(-upper_dof_err/self.cfg.rewards.tracking_sigma)
     
     def _reward_foot_clearance(self):
         cur_footpos_translated = self.feet_pos - self.root_states[:, 0:3].unsqueeze(1)
