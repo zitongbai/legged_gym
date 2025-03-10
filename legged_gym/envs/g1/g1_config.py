@@ -57,13 +57,13 @@ class G1Cfg(LeggedRobotCfg):
                         'knee': 150,
                         'ankle': 40,
                         'waist_yaw_joint': 100,
-                        'shoulder_pitch': 50,
-                        'shoulder_roll': 50,
-                        'shoulder_yaw': 50,
-                        'elbow': 50,
-                        'wrist_roll': 20,
-                        'wrist_pitch': 20,
-                        'wrist_yaw': 20,
+                        'shoulder_pitch': 100,
+                        'shoulder_roll': 100,
+                        'shoulder_yaw': 100,
+                        'elbow': 100,
+                        'wrist_roll': 100,
+                        'wrist_pitch': 100,
+                        'wrist_yaw': 100,
                      }  # [N*m/rad]
         damping = {  
                         'hip_yaw': 2,
@@ -85,6 +85,8 @@ class G1Cfg(LeggedRobotCfg):
         # decimation: Number of control action updates @ sim DT per policy DT
         decimation = 4
         
+    class normalization(LeggedRobotCfg.normalization):
+        clip_upper_dof_actions_scale = 0.0
 
     class asset( LeggedRobotCfg.asset ):
         file = '{LEGGED_GYM_ROOT_DIR}/resources/robots/g1/g1_29dof_lock_waist_rev_1_0.urdf'
@@ -107,30 +109,40 @@ class G1Cfg(LeggedRobotCfg):
         base_height_target = 0.78
         clearance_height_target = 0.09
         feet_swing_height = 0.08
-        only_positive_rewards = True
+        only_positive_rewards = False
 
         class scales( LeggedRobotCfg.rewards.scales ):
             tracking_lin_vel = 1.0
-            tracking_ang_vel = 0.5
-            lin_vel_z = -2.0
-            ang_vel_xy = -0.05
-            orientation = -1.0
+            tracking_ang_vel = 1.0
+            lin_vel_z = -0.5
+            ang_vel_xy = -0.025
+            orientation = -1.5
             base_height = -10.0
             dof_acc = -2.5e-7
-            dof_vel = -1e-3
-            feet_air_time = 1.0
+            dof_vel = -5e-5
+            feet_air_time = 0.05
             collision = 0.0
             action_rate = -0.01
             dof_pos_limits = -5.0
             alive = 0.15
-            hip_pos = -1.0
+            # hip_pos = -1.0
             contact_no_vel = -0.2
             feet_swing_height = -20.0
             contact = 0.18
             
             arm_dof_deviation = -0.1
             waist_dof_deviation = -0.25
-            hip_dof_deviation = -0.5
+            hip_dof_deviation = -0.2
+            
+            no_fly = 0.75
+            torques = -2.5e-6
+            
+            # termination = -10.0
+            foot_clearance = -0.25
+            
+            joint_power = -2e-5
+            
+            stand_still = -0.1
             
         
     class domain_rand(LeggedRobotCfg.domain_rand):
@@ -142,6 +154,8 @@ class G1Cfg(LeggedRobotCfg):
         push_interval_s = 5
         max_push_vel_xy = 1.5
         
+    class commands(LeggedRobotCfg.commands):
+        curriculum = True
 
 class G1CfgPPO( LeggedRobotCfgPPO ):
     class policy:

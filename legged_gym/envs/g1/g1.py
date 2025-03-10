@@ -42,7 +42,8 @@ class G1(LeggedRobot):
         
     def reset_idx(self, env_ids):
         super().reset_idx(env_ids)
-        self.update_upper_dof_pos_limit_curriculum(env_ids)
+        # self.update_upper_dof_pos_limit_curriculum(env_ids)
+        self.update_upper_dof_action_clip_curriculum(env_ids)
 
     def _post_physics_step_callback(self):
         self.gym.refresh_rigid_body_state_tensor(self.sim)
@@ -68,7 +69,9 @@ class G1(LeggedRobot):
         # upper_coeff = torch.ones(self.num_dof, dtype=torch.float, device=self.device, requires_grad=False)
         # upper_coeff[self.upper_dof_indices] = 0.25
         
-        self.obs_buf = torch.cat((  self.base_ang_vel  * self.obs_scales.ang_vel,
+        self.obs_buf = torch.cat((  
+                                    # self.base_lin_vel * self.obs_scales.lin_vel,
+                                    self.base_ang_vel  * self.obs_scales.ang_vel,
                                     self.projected_gravity,
                                     self.commands[:, :3] * self.commands_scale,
                                     (self.dof_pos - self.default_dof_pos) * self.obs_scales.dof_pos,
@@ -125,6 +128,35 @@ class G1(LeggedRobot):
             raise NotImplementedError("Noise for height measurements not implemented yet")
         
         return noise_vec
+    
+    # def _get_noise_scale_vec(self, cfg):
+    #     """ Sets a vector used to scale the noise added to the observations.
+    #         [NOTE]: Must be adapted when changing the observations structure
+
+    #     Args:
+    #         cfg (Dict): Environment config file
+
+    #     Returns:
+    #         [torch.Tensor]: Vector of scales used to multiply a uniform distribution in [-1, 1]
+    #     """
+    #     noise_vec = torch.zeros_like(self.obs_buf[0])
+    #     self.add_noise = self.cfg.noise.add_noise
+    #     noise_scales = self.cfg.noise.noise_scales
+    #     noise_level = self.cfg.noise.noise_level
+    #     noise_vec[:3] = noise_scales.lin_vel * noise_level * self.obs_scales.lin_vel
+    #     noise_vec[3:6] = noise_scales.ang_vel * noise_level * self.obs_scales.ang_vel
+    #     noise_vec[6:9] = noise_scales.gravity * noise_level
+    #     noise_vec[9:12] = 0. # commands
+    #     noise_vec[12:12+self.num_actions] = noise_scales.dof_pos * noise_level * self.obs_scales.dof_pos
+    #     noise_vec[12+self.num_actions:12+2*self.num_actions] = noise_scales.dof_vel * noise_level * self.obs_scales.dof_vel
+    #     noise_vec[12+2*self.num_actions:12+3*self.num_actions] = 0. # previous actions
+    #     noise_vec[12+3*self.num_actions:12+3*self.num_actions+2] = 0. # sin/cos phase
+        
+    #     if self.cfg.terrain.measure_heights:
+    #         # TODO: support for height measurements
+    #         raise NotImplementedError("Noise for height measurements not implemented yet")
+        
+    #     return noise_vec
 
     def _init_buffers(self):
         super()._init_buffers()
@@ -140,6 +172,8 @@ class G1(LeggedRobot):
         
         self.phase = torch.zeros(self.num_envs, device=self.device, dtype=torch.long)
         self.leg_phase = torch.zeros(self.num_envs, 2, device=self.device, dtype=torch.long)
+        
+        # self._change_upper_dof_pos_limits(0.1)
         
     def _create_envs(self):
         super()._create_envs()
@@ -158,65 +192,87 @@ class G1(LeggedRobot):
                 self.hip_dof_indices.append(i)
         self.hip_dof_indices = torch.tensor(self.hip_dof_indices, dtype=torch.long, device=self.device, requires_grad=False)
         
-        # self.leg_dof_indices = []
-        # for i in range(len(self.dof_names)):
-        #     if any([s in self.dof_names[i] for s in self.cfg.asset.leg_dof_name]):
-        #         self.leg_dof_indices.append(i)
-        # self.leg_dof_indices = torch.tensor(self.leg_dof_indices, dtype=torch.long, device=self.device, requires_grad=False)
+        self.arm_dof_indices = []
+        for i in range(len(self.dof_names)):
+            if any([s in self.dof_names[i] for s in self.cfg.asset.arm_dof_name]):
+                self.arm_dof_indices.append(i)
+        self.arm_dof_indices = torch.tensor(self.arm_dof_indices, dtype=torch.long, device=self.device, requires_grad=False)
         
-        # dof pos limits of upper dof is 0 at beginning.
+        self.waist_dof_indices = []
+        for i in range(len(self.dof_names)):
+            if any([s in self.dof_names[i] for s in self.cfg.asset.waist_dof_name]):
+                self.waist_dof_indices.append(i)
+        self.waist_dof_indices = torch.tensor(self.waist_dof_indices, dtype=torch.long, device=self.device, requires_grad=False)
         
-        asset_path = self.cfg.asset.file.format(LEGGED_GYM_ROOT_DIR=LEGGED_GYM_ROOT_DIR)
-        asset_root = os.path.dirname(asset_path)
-        asset_file = os.path.basename(asset_path)
+        self.leg_dof_indices = []
+        for i in range(len(self.dof_names)):
+            if any([s in self.dof_names[i] for s in self.cfg.asset.leg_dof_name]):
+                self.leg_dof_indices.append(i)
+        self.leg_dof_indices = torch.tensor(self.leg_dof_indices, dtype=torch.long, device=self.device, requires_grad=False)
+        
+        # # dof pos limits of upper dof is 0 at beginning.
+        
+        # asset_path = self.cfg.asset.file.format(LEGGED_GYM_ROOT_DIR=LEGGED_GYM_ROOT_DIR)
+        # asset_root = os.path.dirname(asset_path)
+        # asset_file = os.path.basename(asset_path)
 
-        asset_options = gymapi.AssetOptions()
-        asset_options.default_dof_drive_mode = self.cfg.asset.default_dof_drive_mode
-        asset_options.collapse_fixed_joints = self.cfg.asset.collapse_fixed_joints
-        asset_options.replace_cylinder_with_capsule = self.cfg.asset.replace_cylinder_with_capsule
-        asset_options.flip_visual_attachments = self.cfg.asset.flip_visual_attachments
-        asset_options.fix_base_link = self.cfg.asset.fix_base_link
-        asset_options.density = self.cfg.asset.density
-        asset_options.angular_damping = self.cfg.asset.angular_damping
-        asset_options.linear_damping = self.cfg.asset.linear_damping
-        asset_options.max_angular_velocity = self.cfg.asset.max_angular_velocity
-        asset_options.max_linear_velocity = self.cfg.asset.max_linear_velocity
-        asset_options.armature = self.cfg.asset.armature
-        asset_options.thickness = self.cfg.asset.thickness
-        asset_options.disable_gravity = self.cfg.asset.disable_gravity
+        # asset_options = gymapi.AssetOptions()
+        # asset_options.default_dof_drive_mode = self.cfg.asset.default_dof_drive_mode
+        # asset_options.collapse_fixed_joints = self.cfg.asset.collapse_fixed_joints
+        # asset_options.replace_cylinder_with_capsule = self.cfg.asset.replace_cylinder_with_capsule
+        # asset_options.flip_visual_attachments = self.cfg.asset.flip_visual_attachments
+        # asset_options.fix_base_link = self.cfg.asset.fix_base_link
+        # asset_options.density = self.cfg.asset.density
+        # asset_options.angular_damping = self.cfg.asset.angular_damping
+        # asset_options.linear_damping = self.cfg.asset.linear_damping
+        # asset_options.max_angular_velocity = self.cfg.asset.max_angular_velocity
+        # asset_options.max_linear_velocity = self.cfg.asset.max_linear_velocity
+        # asset_options.armature = self.cfg.asset.armature
+        # asset_options.thickness = self.cfg.asset.thickness
+        # asset_options.disable_gravity = self.cfg.asset.disable_gravity
         
-        robot_asset = self.gym.load_asset(self.sim, asset_root, asset_file, asset_options)
-        self.dof_props_asset = self.gym.get_asset_dof_properties(robot_asset)
-        self.dof_limits_upper = self.dof_props_asset["upper"][:]
-        self.dof_limits_lower = self.dof_props_asset["lower"][:]
-        
-        self._change_upper_dof_pos_limits(0.0)
+        # robot_asset = self.gym.load_asset(self.sim, asset_root, asset_file, asset_options)
+        # self.dof_props_asset = self.gym.get_asset_dof_properties(robot_asset)
+        # self.dof_limits_upper = np.copy(self.dof_props_asset["upper"])
+        # self.dof_limits_lower = np.copy(self.dof_props_asset["lower"])
         
 
-    def update_upper_dof_pos_limit_curriculum(self, env_ids):
+    # def update_upper_dof_pos_limit_curriculum(self, env_ids):
         
-        track_rew_percent =  torch.mean(self.episode_sums["tracking_lin_vel"][env_ids]) / self.max_episode_length 
-        # print(track_rew_percent)
-        if track_rew_percent > 0.5 * self.reward_scales["tracking_lin_vel"]:
-            self._change_upper_dof_pos_limits(0.1)
-            # self.reward_scales["upper_dof"] = 0.1
+    #     track_rew_percent =  torch.mean(self.episode_sums["tracking_lin_vel"][env_ids]) / self.max_episode_length 
+    #     # print(track_rew_percent)
+    #     if track_rew_percent > 0.5 * self.reward_scales["tracking_lin_vel"]:
+    #         self._change_upper_dof_pos_limits(0.1)
+    #         # self.reward_scales["upper_dof"] = 0.1
+    #     elif track_rew_percent > 0.8 * self.reward_scales["tracking_lin_vel"]:
+    #         self._change_upper_dof_pos_limits(0.5)
+    #     elif track_rew_percent > 0.9 * self.reward_scales["tracking_lin_vel"]:
+    #         self._change_upper_dof_pos_limits(1.0)
+        
+
+    # def _change_upper_dof_pos_limits(self, scale):
+    #     for i, env_handle in enumerate(self.envs):
+    #         actor_handle = self.actor_handles[i]
+    #         for idx in self.upper_dof_indices:
+    #             self.dof_props_asset["lower"][idx] = (1-scale) * self.default_dof_pos[0][idx] + scale * self.dof_limits_lower[idx]
+    #             self.dof_props_asset["upper"][idx] = (1-scale) * self.default_dof_pos[0][idx] + scale * self.dof_limits_upper[idx]
+    #         self.gym.set_actor_dof_properties(env_handle, actor_handle, self.dof_props_asset)
+
+    #     for idx in self.upper_dof_indices:
+    #         self.dof_pos_limits[idx, 0] = (1-scale) * self.default_dof_pos[0][idx] + scale * self.dof_limits_lower[idx]
+    #         self.dof_pos_limits[idx, 1] = (1-scale) * self.default_dof_pos[0][idx] + scale * self.dof_limits_upper[idx]
+
+    def update_upper_dof_action_clip_curriculum(self, env_ids):
+        track_rew_percent =  torch.mean(self.episode_sums["tracking_lin_vel"][env_ids]) / self.max_episode_length
+        if track_rew_percent > 0.4 * self.reward_scales["tracking_lin_vel"]:
+            self.cfg.normalization.clip_upper_dof_actions_scale = 0.1
+        elif track_rew_percent > 0.6 * self.reward_scales["tracking_lin_vel"]:
+            self.cfg.normalization.clip_upper_dof_actions_scale = 0.5
         elif track_rew_percent > 0.8 * self.reward_scales["tracking_lin_vel"]:
-            self._change_upper_dof_pos_limits(0.5)
-        elif track_rew_percent > 0.9 * self.reward_scales["tracking_lin_vel"]:
-            self._change_upper_dof_pos_limits(1.0)
+            self.cfg.normalization.clip_upper_dof_actions_scale = 1.0
+        else:
+            self.cfg.normalization.clip_upper_dof_actions_scale = 0.0
         
-
-    def _change_upper_dof_pos_limits(self, scale):
-        for i, env_handle in enumerate(self.envs):
-            actor_handle = self.actor_handles[i]
-            for idx in self.upper_dof_indices:
-                self.dof_props_asset["lower"][idx] = (1-scale) * self.default_dof_pos[idx] + scale * self.dof_limits_lower[idx]
-                self.dof_props_asset["upper"][idx] = (1-scale) * self.default_dof_pos[idx] + scale * self.dof_limits_upper[idx]
-            self.gym.set_actor_dof_properties(env_handle, actor_handle, self.dof_props_asset)
-
-        for idx in self.upper_dof_indices:
-            self.dof_pos_limits[idx, 0] = (1-scale) * self.default_dof_pos[idx] + scale * self.dof_limits_lower[idx]
-            self.dof_pos_limits[idx, 1] = (1-scale) * self.default_dof_pos[idx] + scale * self.dof_limits_upper[idx]
 
     # ------------ reward functions----------------
     # def _reward_torques(self):
@@ -261,9 +317,6 @@ class G1(LeggedRobot):
         penalize = torch.square(contact_feet_vel[:, :, :3])
         return torch.sum(penalize, dim=(1,2))
     
-    def _reward_hip_pos(self):
-        return torch.sum(torch.square(self.dof_pos[:, self.hip_dof_indices]), dim=1)
-    
     # def _reward_upper_dof(self):
     #     # upper dof
     #     upper_dof_err = torch.sum(torch.abs(self.dof_pos[:, self.upper_dof_indices] - self.default_dof_pos[:, self.upper_dof_indices]), dim=1)
@@ -282,3 +335,28 @@ class G1(LeggedRobot):
         foot_leteral_vel = torch.sqrt(torch.sum(torch.square(footvel_in_body_frame[:, :, :2]), dim=2)).view(self.num_envs, -1)
         return torch.sum(height_error * foot_leteral_vel, dim=1)
     
+    def _reward_arm_dof_deviation(self):
+        arm_dof_err = torch.sum(torch.square(self.dof_pos[:, self.arm_dof_indices] - self.default_dof_pos[:, self.arm_dof_indices]), dim=1)
+        return arm_dof_err
+    
+    def _reward_waist_dof_deviation(self):
+        waist_dof_err = torch.sum(torch.square(self.dof_pos[:, self.waist_dof_indices] - self.default_dof_pos[:, self.waist_dof_indices]), dim=1)
+        return waist_dof_err
+    
+    def _reward_hip_dof_deviation(self):
+        hip_dof_err = torch.sum(torch.square(self.dof_pos[:, self.hip_dof_indices] - self.default_dof_pos[:, self.hip_dof_indices]), dim=1)
+        return hip_dof_err
+    
+    def _reward_no_fly(self):
+        contacts = self.contact_forces[:, self.feet_indices, 2] > 0.1
+        single_contact = torch.sum(1.*contacts, dim=1)==1
+        return 1.*single_contact
+    
+    def _reward_torques(self):
+        # Penalize torques
+        return torch.sum(torch.square(self.torques/self.p_gains), dim=1)
+    
+    def _reward_joint_power(self):
+        numerator = torch.sum(torch.abs(self.torques * self.dof_vel), dim=1)
+        denominator = torch.sum(torch.square(self.base_lin_vel), dim=1) + 0.2 * torch.sum(torch.square(self.base_ang_vel), dim=1)
+        return numerator / denominator
