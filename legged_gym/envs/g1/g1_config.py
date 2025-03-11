@@ -119,7 +119,7 @@ class G1Cfg(LeggedRobotCfg):
             orientation = -1.5
             base_height = -10.0
             dof_acc = -2.5e-7
-            dof_vel = -5e-5
+            dof_vel = -1e-4
             feet_air_time = 0.05
             collision = 0.0
             action_rate = -0.01
@@ -134,7 +134,7 @@ class G1Cfg(LeggedRobotCfg):
             waist_dof_deviation = -0.25
             hip_dof_deviation = -0.2
             
-            no_fly = 0.75
+            no_fly = 0.25
             torques = -2.5e-6
             
             # termination = -10.0
@@ -160,8 +160,8 @@ class G1Cfg(LeggedRobotCfg):
 class G1CfgPPO( LeggedRobotCfgPPO ):
     class policy:
         init_noise_std = 0.8
-        actor_hidden_dims = [32]
-        critic_hidden_dims = [32]
+        actor_hidden_dims = [64]
+        critic_hidden_dims = [64]
         activation = 'elu' # can be elu, relu, selu, crelu, lrelu, tanh, sigmoid
         # only for 'ActorCriticRecurrent':
         rnn_type = 'lstm'
@@ -173,7 +173,7 @@ class G1CfgPPO( LeggedRobotCfgPPO ):
     class runner( LeggedRobotCfgPPO.runner ):
         policy_class_name = "ActorCriticRecurrent"
         num_steps_per_env = 24 # per iteration
-        max_iterations = 2000
+        max_iterations = 3000
         run_name = ''
         experiment_name = 'g1'
         save_interval = 100 # check for potential saves every this many iterations
