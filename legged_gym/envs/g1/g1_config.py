@@ -3,7 +3,7 @@ from legged_gym.envs.base.legged_robot_config import LeggedRobotCfg, LeggedRobot
 class G1Cfg(LeggedRobotCfg):
     class env(LeggedRobotCfg.env):
         num_envs = 4096
-        num_observations = 92  # TODO
+        num_observations = 95  # TODO
         num_privileged_obs = 95
         num_actions = 27 # TODO
         # num_observations = 47
@@ -85,8 +85,8 @@ class G1Cfg(LeggedRobotCfg):
         # decimation: Number of control action updates @ sim DT per policy DT
         decimation = 4
         
-    class normalization(LeggedRobotCfg.normalization):
-        clip_upper_dof_actions_scale = 0.0
+    # class normalization(LeggedRobotCfg.normalization):
+    #     clip_upper_dof_actions_scale = 0.0
 
     class asset( LeggedRobotCfg.asset ):
         file = '{LEGGED_GYM_ROOT_DIR}/resources/robots/g1/g1_29dof_lock_waist_rev_1_0.urdf'
@@ -105,44 +105,53 @@ class G1Cfg(LeggedRobotCfg):
         waist_dof_name = ["waist", ]
     
     class rewards( LeggedRobotCfg.rewards ):
-        soft_dof_pos_limit = 0.9
-        base_height_target = 0.78
         clearance_height_target = 0.09
         feet_swing_height = 0.08
-        only_positive_rewards = False
+        
+        only_positive_rewards = False # if true negative total rewards are clipped at zero (avoids early termination problems)
+        tracking_sigma = 0.25 # tracking reward = exp(-error^2/sigma)
+        soft_dof_pos_limit = 1. # percentage of urdf limits, values above this limit are penalized
+        soft_dof_vel_limit = 1.
+        soft_torque_limit = 1.
+        base_height_target = 0.78
+        max_contact_force = 1e3 # forces above this value are penalized
+        
+        feet_dist_min = 0.2
+        feet_dist_max = 0.6
 
-        class scales( LeggedRobotCfg.rewards.scales ):
+        class scales:
             tracking_lin_vel = 1.0
             tracking_ang_vel = 1.0
-            lin_vel_z = -0.5
-            ang_vel_xy = -0.025
+            lin_vel_z = -0.8
+            ang_vel_xy = -0.05
             orientation = -1.5
-            base_height = -10.0
-            dof_acc = -2.5e-7
-            dof_vel = -1e-4
-            feet_air_time = 0.05
-            collision = 0.0
-            action_rate = -0.01
-            dof_pos_limits = -5.0
-            alive = 0.15
-            # hip_pos = -1.0
-            contact_no_vel = -0.2
-            feet_swing_height = -20.0
-            contact = 0.18
+            # base_height = -10.0
             
-            arm_dof_deviation = -0.1
-            waist_dof_deviation = -0.25
-            hip_dof_deviation = -0.2
+            # dof_power = -1e-3
+            # dof_acc = -2.5e-7
+            # action_rate = -0.01
+            # dof_vel = -0.0
+            # dof_pos_limits = -2.0
             
-            no_fly = 0.25
-            torques = -2.5e-6
+            # feet_air_time = 0.15
+            # feet_contact_forces = -0.01
+            # fly = -1.0
+            # feet_slip = -0.05
+            # feet_distance = 0.2
+            # feet_stumble = -0.
             
-            # termination = -10.0
-            foot_clearance = -0.25
+            # feet_contact_gait = 0.5
+            # feet_clearance = -0.25
+            # # feet_swing_height = -20.0
             
-            joint_power = -2e-5
+            # arm_dof_deviation = -0.5
+            # waist_dof_deviation = -0.5
+            # hip_dof_deviation = -0.5
             
-            stand_still = -0.1
+            # alive = 0.15
+            # termination = -100.0
+            # collision = 0.0
+            # stand_still = -1.0
             
         
     class domain_rand(LeggedRobotCfg.domain_rand):
@@ -154,8 +163,13 @@ class G1Cfg(LeggedRobotCfg):
         push_interval_s = 5
         max_push_vel_xy = 1.5
         
-    class commands(LeggedRobotCfg.commands):
-        curriculum = True
+    # class commands(LeggedRobotCfg.commands):
+    #     curriculum = True
+    #     class ranges( LeggedRobotCfg.commands.ranges ):
+    #         lin_vel_x = [-.0, .0] # min max [m/s]
+    #         lin_vel_y = [-.0, .0]   # min max [m/s]
+    #         ang_vel_yaw = [-0.0, 0.0]    # min max [rad/s]
+    #         # heading = [-3.14, 3.14]
 
 class G1CfgPPO( LeggedRobotCfgPPO ):
     class policy:
