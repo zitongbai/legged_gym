@@ -3,7 +3,7 @@ from legged_gym.envs.base.legged_robot_config import LeggedRobotCfg, LeggedRobot
 class G1Cfg(LeggedRobotCfg):
     class env(LeggedRobotCfg.env):
         num_envs = 4096
-        num_observations = 93  # TODO
+        num_observations = 90  # TODO
         num_privileged_obs = 93
         num_actions = 27 # TODO
         # num_observations = 47
@@ -120,8 +120,8 @@ class G1Cfg(LeggedRobotCfg):
         feet_dist_max = 0.6
 
         class scales:
-            tracking_lin_vel = 6.0
-            tracking_ang_vel = 6.0
+            tracking_lin_vel = 3.0
+            tracking_ang_vel = 3.0
             lin_vel_z = -0.8
             ang_vel_xy = -0.05
             orientation = -0.5
@@ -130,7 +130,7 @@ class G1Cfg(LeggedRobotCfg):
             # dof_power = -1e-3
             # dof_torques = -1.5e-7
             dof_acc = -3e-7
-            action_rate = -0.1
+            action_rate = -0.05
             # dof_vel = -0.0
             dof_pos_limits = -10.0
             
@@ -147,7 +147,7 @@ class G1Cfg(LeggedRobotCfg):
             
             arm_dof_deviation = -0.5
             waist_dof_deviation = -0.1
-            hip_dof_deviation = -0.1
+            hip_dof_deviation = -0.3
             ankle_action = -0.1
             
             alive = 0.15
@@ -176,18 +176,19 @@ class G1Cfg(LeggedRobotCfg):
 class G1CfgPPO( LeggedRobotCfgPPO ):
     class policy:
         init_noise_std = 0.8
-        actor_hidden_dims = [512, 256, 128]
-        critic_hidden_dims = [512, 256, 128]
-        activation = 'elu' # can be elu, relu, selu, crelu, lrelu, tanh, sigmoid
-        # # only for 'ActorCriticRecurrent':
-        # rnn_type = 'lstm'
-        # rnn_hidden_size = 32
-        # rnn_num_layers = 1
+        actor_hidden_dims = [256, 128]
+        critic_hidden_dims = [256, 128]
+        activation = 'crelu' # can be elu, relu, selu, crelu, lrelu, tanh, sigmoid
+        # only for 'ActorCriticRecurrent':
+        rnn_type = 'gru'
+        rnn_hidden_size = 64
+        rnn_num_layers = 1
         
     class algorithm( LeggedRobotCfgPPO.algorithm ):
         entropy_coef = 0.01
     class runner( LeggedRobotCfgPPO.runner ):
-        policy_class_name = 'ActorCritic' # "ActorCriticRecurrent"
+        # policy_class_name = 'ActorCritic'
+        policy_class_name = 'ActorCriticRecurrent'
         num_steps_per_env = 24 # per iteration
         max_iterations = 3000
         run_name = ''
