@@ -3,8 +3,8 @@ from legged_gym.envs.base.legged_robot_config import LeggedRobotCfg, LeggedRobot
 class G1Cfg(LeggedRobotCfg):
     class env(LeggedRobotCfg.env):
         num_envs = 4096
-        num_observations = 95  # TODO
-        num_privileged_obs = 95
+        num_observations = 93  # TODO
+        num_privileged_obs = 93
         num_actions = 27 # TODO
         # num_observations = 47
         # num_privileged_obs = 50
@@ -100,7 +100,7 @@ class G1Cfg(LeggedRobotCfg):
         upper_dof_name = ["shoulder", "elbow", "wrist", "waist"]
         hip_dof_name = ["hip_roll", "hip_yaw"]
         leg_dof_name = ["hip", "knee", "ankle"]
-        
+        ankle_dof_name = ["ankle_roll", "ankle_pitch"]
         arm_dof_name = ["shoulder", "elbow", "wrist", ]
         waist_dof_name = ["waist", ]
     
@@ -110,7 +110,7 @@ class G1Cfg(LeggedRobotCfg):
         
         only_positive_rewards = False # if true negative total rewards are clipped at zero (avoids early termination problems)
         tracking_sigma = 0.25 # tracking reward = exp(-error^2/sigma)
-        soft_dof_pos_limit = 1. # percentage of urdf limits, values above this limit are penalized
+        soft_dof_pos_limit = 0.9 # percentage of urdf limits, values above this limit are penalized
         soft_dof_vel_limit = 1.
         soft_torque_limit = 1.
         base_height_target = 0.78
@@ -120,36 +120,38 @@ class G1Cfg(LeggedRobotCfg):
         feet_dist_max = 0.6
 
         class scales:
-            tracking_lin_vel = 1.0
-            tracking_ang_vel = 1.0
+            tracking_lin_vel = 6.0
+            tracking_ang_vel = 6.0
             lin_vel_z = -0.8
             ang_vel_xy = -0.05
-            orientation = -1.5
-            # base_height = -10.0
+            orientation = -0.5
+            base_height = -10.0
             
             # dof_power = -1e-3
-            # dof_acc = -2.5e-7
-            # action_rate = -0.01
+            # dof_torques = -1.5e-7
+            dof_acc = -3e-7
+            action_rate = -0.1
             # dof_vel = -0.0
-            # dof_pos_limits = -2.0
+            dof_pos_limits = -10.0
             
-            # feet_air_time = 0.15
+            feet_air_time = 10
             # feet_contact_forces = -0.01
             # fly = -1.0
-            # feet_slip = -0.05
+            feet_slip = -0.1
             # feet_distance = 0.2
-            # feet_stumble = -0.
+            feet_stumble = -2
             
             # feet_contact_gait = 0.5
             # feet_clearance = -0.25
             # # feet_swing_height = -20.0
             
-            # arm_dof_deviation = -0.5
-            # waist_dof_deviation = -0.5
-            # hip_dof_deviation = -0.5
+            arm_dof_deviation = -0.5
+            waist_dof_deviation = -0.1
+            hip_dof_deviation = -0.1
+            ankle_action = -0.1
             
-            # alive = 0.15
-            # termination = -100.0
+            alive = 0.15
+            # termination = -200.0
             # collision = 0.0
             # stand_still = -1.0
             
@@ -174,18 +176,18 @@ class G1Cfg(LeggedRobotCfg):
 class G1CfgPPO( LeggedRobotCfgPPO ):
     class policy:
         init_noise_std = 0.8
-        actor_hidden_dims = [64]
-        critic_hidden_dims = [64]
+        actor_hidden_dims = [512, 256, 128]
+        critic_hidden_dims = [512, 256, 128]
         activation = 'elu' # can be elu, relu, selu, crelu, lrelu, tanh, sigmoid
-        # only for 'ActorCriticRecurrent':
-        rnn_type = 'lstm'
-        rnn_hidden_size = 64
-        rnn_num_layers = 1
+        # # only for 'ActorCriticRecurrent':
+        # rnn_type = 'lstm'
+        # rnn_hidden_size = 32
+        # rnn_num_layers = 1
         
     class algorithm( LeggedRobotCfgPPO.algorithm ):
         entropy_coef = 0.01
     class runner( LeggedRobotCfgPPO.runner ):
-        policy_class_name = "ActorCriticRecurrent"
+        policy_class_name = 'ActorCritic' # "ActorCriticRecurrent"
         num_steps_per_env = 24 # per iteration
         max_iterations = 3000
         run_name = ''

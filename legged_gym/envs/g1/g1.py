@@ -77,8 +77,8 @@ class G1(LeggedRobot):
                                     (self.dof_pos - self.default_dof_pos) * self.obs_scales.dof_pos,
                                     self.dof_vel * self.obs_scales.dof_vel,
                                     self.actions,
-                                    sin_phase,
-                                    cos_phase
+                                    # sin_phase,
+                                    # cos_phase
                                     ),dim=-1)
         self.privileged_obs_buf = torch.cat((  
                                     self.base_lin_vel * self.obs_scales.lin_vel,
@@ -88,8 +88,8 @@ class G1(LeggedRobot):
                                     (self.dof_pos - self.default_dof_pos) * self.obs_scales.dof_pos,
                                     self.dof_vel * self.obs_scales.dof_vel,
                                     self.actions,
-                                    sin_phase,
-                                    cos_phase
+                                    # sin_phase,
+                                    # cos_phase
                                     ),dim=-1)
         
         # add perceptive inputs if not blind
@@ -210,6 +210,12 @@ class G1(LeggedRobot):
                 self.leg_dof_indices.append(i)
         self.leg_dof_indices = torch.tensor(self.leg_dof_indices, dtype=torch.long, device=self.device, requires_grad=False)
 
+        self.ankle_dof_indices = []
+        for i in range(len(self.dof_names)):
+            if any([s in self.dof_names[i] for s in self.cfg.asset.ankle_dof_name]):
+                self.ankle_dof_indices.append(i)
+        self.ankle_dof_indices = torch.tensor(self.ankle_dof_indices, dtype=torch.long, device=self.device, requires_grad=False)
+
     # def update_upper_dof_action_clip_curriculum(self, env_ids):
     #     track_rew_percent =  torch.mean(self.episode_sums["tracking_lin_vel"][env_ids]) / self.max_episode_length
     #     if track_rew_percent > 0.4 * self.reward_scales["tracking_lin_vel"]:
@@ -274,9 +280,10 @@ class G1(LeggedRobot):
     # Joint (Dof)
     # ----------------------------------------------------------------
     
-    def _reward_torques(self):
+    def _reward_dof_torques(self):
         # Penalize torques
-        return torch.sum(torch.square(self.torques), dim=1)
+        weighted_torque = self.torques / self.p_gains
+        return torch.sum(torch.square(weighted_torque), dim=1)
 
     def _reward_dof_vel(self):
         # Penalize dof velocities
@@ -324,6 +331,8 @@ class G1(LeggedRobot):
         hip_dof_err = torch.sum(torch.abs(self.dof_pos[:, self.hip_dof_indices] - self.default_dof_pos[:, self.hip_dof_indices]), dim=1)
         return hip_dof_err
     
+    def _reward_ankle_action(self):
+        return torch.sum(torch.square(self.actions[:, self.ankle_dof_indices]), dim=1)
 
     # ----------------------------------------------------------------
     # Feet
@@ -354,7 +363,7 @@ class G1(LeggedRobot):
         # Penalize contact with no velocity
         contact = torch.norm(self.contact_forces[:, self.feet_indices, :3], dim=2) > 1.
         contact_feet_vel = self.feet_vel * contact.unsqueeze(-1)
-        penalize = torch.square(contact_feet_vel[:, :, :3])
+        penalize = torch.square(contact_feet_vel[:, :, :2])
         return torch.sum(penalize, dim=(1,2))
         
     def _reward_feet_distance(self):
