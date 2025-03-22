@@ -98,14 +98,13 @@ class G1Cfg(LeggedRobotCfg):
         self_collisions = 0 # 1 to disable, 0 to enable...bitwise filter
         flip_visual_attachments = False # Some .obj meshes must be flipped from y-up to z-up
         
-        upper_dof_name = ["shoulder", "elbow", "wrist", "waist"]
         hip_dof_name = ["hip_roll", "hip_yaw"]
-        leg_dof_name = ["hip", "knee", "ankle"]
+        hip_knee_dof_name = ["hip", "knee"]
         ankle_dof_name = ["ankle_roll", "ankle_pitch"]
+        
         arm_dof_name = ["shoulder", "elbow", "wrist", ]
         waist_dof_name = ["waist", ]
-
-        hip_knee_dof_name = ["hip", "knee"]
+        
     
     class rewards( LeggedRobotCfg.rewards ):
         clearance_height_target = 0.09
@@ -137,7 +136,9 @@ class G1Cfg(LeggedRobotCfg):
             waist_dof_deviation = -0.1
             
             lin_vel_z = -0.2
+            ang_vel_xy = -0.05
             orientation = -1.0
+            base_height = -10.0
             
             action_rate = -0.005
             
@@ -147,7 +148,6 @@ class G1Cfg(LeggedRobotCfg):
             # lin_vel_z = -0.8
             # ang_vel_xy = -0.05
             # orientation = -0.5
-            # base_height = -10.0
             
             # dof_power = -1e-3
             # dof_torques = -1.5e-7
@@ -215,5 +215,5 @@ class G1CfgPPO( LeggedRobotCfgPPO ):
         max_iterations = 3000
         run_name = ''
         experiment_name = 'g1'
-        save_interval = 100 # check for potential saves every this many iterations
+        save_interval = 200 # check for potential saves every this many iterations
   

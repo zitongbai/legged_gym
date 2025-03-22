@@ -66,9 +66,6 @@ class G1(LeggedRobot):
         sin_phase = torch.sin(2*np.pi*self.phase).unsqueeze(1)
         cos_phase = torch.cos(2*np.pi*self.phase).unsqueeze(1)
         
-        # upper_coeff = torch.ones(self.num_dof, dtype=torch.float, device=self.device, requires_grad=False)
-        # upper_coeff[self.upper_dof_indices] = 0.25
-        
         self.obs_buf = torch.cat((  
                                     self.base_lin_vel * self.obs_scales.lin_vel,
                                     self.base_ang_vel  * self.obs_scales.ang_vel,
@@ -178,13 +175,6 @@ class G1(LeggedRobot):
     def _create_envs(self):
         super()._create_envs()
         
-        # find all upper dofs, obeying order in self.dof_names
-        self.upper_dof_indices = []
-        for i in range(len(self.dof_names)):
-            if any([s in self.dof_names[i] for s in self.cfg.asset.upper_dof_name]):
-                self.upper_dof_indices.append(i)
-        self.upper_dof_indices = torch.tensor(self.upper_dof_indices, dtype=torch.long, device=self.device, requires_grad=False)
-        
         # find all hip dofs, obeying order in self.dof_names
         self.hip_dof_indices = []
         for i in range(len(self.dof_names)):
@@ -203,12 +193,6 @@ class G1(LeggedRobot):
             if any([s in self.dof_names[i] for s in self.cfg.asset.waist_dof_name]):
                 self.waist_dof_indices.append(i)
         self.waist_dof_indices = torch.tensor(self.waist_dof_indices, dtype=torch.long, device=self.device, requires_grad=False)
-        
-        self.leg_dof_indices = []
-        for i in range(len(self.dof_names)):
-            if any([s in self.dof_names[i] for s in self.cfg.asset.leg_dof_name]):
-                self.leg_dof_indices.append(i)
-        self.leg_dof_indices = torch.tensor(self.leg_dof_indices, dtype=torch.long, device=self.device, requires_grad=False)
 
         self.ankle_dof_indices = []
         for i in range(len(self.dof_names)):
@@ -363,8 +347,7 @@ class G1(LeggedRobot):
         self.last_contacts = contact
         first_contact = (self.feet_air_time > 0.) * contact_filt
         self.feet_air_time += self.dt
-        rew_airTime = torch.sum((self.feet_air_time - 0.0) * first_contact, dim=1) # reward only on first contact with the ground
-        rew_airTime = torch.clamp(rew_airTime, min=0., max=0.4)
+        rew_airTime = torch.sum((self.feet_air_time - 0.5) * first_contact, dim=1) # reward only on first contact with the ground
         rew_airTime *= torch.norm(self.commands[:, :2], dim=1) > 0.1 #no reward for zero command
         self.feet_air_time *= ~contact_filt
         return rew_airTime
