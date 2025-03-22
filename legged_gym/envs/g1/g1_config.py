@@ -3,7 +3,7 @@ from legged_gym.envs.base.legged_robot_config import LeggedRobotCfg, LeggedRobot
 class G1Cfg(LeggedRobotCfg):
     class env(LeggedRobotCfg.env):
         num_envs = 4096
-        num_observations = 93  # TODO
+        num_observations = 90  # TODO
         num_privileged_obs = 93
         num_actions = 27 # TODO
         # num_observations = 47
@@ -201,19 +201,19 @@ class G1CfgPPO( LeggedRobotCfgPPO ):
         actor_hidden_dims = [512, 256, 128]
         critic_hidden_dims = [512, 256, 128]
         activation = 'elu' # can be elu, relu, selu, crelu, lrelu, tanh, sigmoid
-        # # only for 'ActorCriticRecurrent':
-        # rnn_type = 'gru'
-        # rnn_hidden_size = 64
-        # rnn_num_layers = 1
+        # only for 'ActorCriticRecurrent':
+        rnn_type = 'gru'
+        rnn_hidden_size = 64
+        rnn_num_layers = 1
         
     class algorithm( LeggedRobotCfgPPO.algorithm ):
         entropy_coef = 0.01
     class runner( LeggedRobotCfgPPO.runner ):
-        policy_class_name = 'ActorCritic'
-        # policy_class_name = 'ActorCriticRecurrent'
+        # policy_class_name = 'ActorCritic'
+        policy_class_name = 'ActorCriticRecurrent'
         num_steps_per_env = 24 # per iteration
         max_iterations = 3000
         run_name = ''
         experiment_name = 'g1'
-        save_interval = 200 # check for potential saves every this many iterations
+        save_interval = 500 # check for potential saves every this many iterations
   
